@@ -8,6 +8,8 @@ from collections import OrderedDict
 from art.attacks.fast_gradient import FastGradientMethod
 from art.attacks.deepfool import DeepFool
 from art.attacks.adversarial_patch import AdversarialPatch
+from art.attacks.hop_skip_jump import HopSkipJump
+from art.attacks.carlini import CarliniL2Method
 from art.classifiers.pytorch import PyTorchClassifier
 from art.utils import load_mnist
 
@@ -97,7 +99,7 @@ mnist_classifier = PyTorchClassifier(clip_values=(0, 1), model=model, loss=crite
                                      input_shape=(1, 28, 28), nb_classes=10)
 
 # Train the classifier
-# mnist_classifier.fit(x_train, y_train, batch_size=64, nb_epochs=30)
+# mnist_classifier.fit(x_train, y_train, batch_size=64, nb_epochs=50)
 # torch.save(model.state_dict(), "./minst.pt")
 model.load_state_dict(torch.load("./minst.pt"))
 
@@ -109,10 +111,15 @@ print('Accuracy before attack: {}%'.format(accuracy * 100))
 
 # Craft the adversarial examples
 epsilon = 0.2  # Maximum perturbation
-adv_crafter = AdversarialPatch(mnist_classifier, batch_size=16, max_iter=50)
+# adv_crafter = AdversarialPatch(mnist_classifier, batch_size=16, max_iter=10)
+# adv_crafter = FastGradientMethod(mnist_classifier, eps=epsilon)
+adv_crafter = CarliniL2Method(mnist_classifier)
+# adv_crafter = DeepFool(mnist_classifier, epsilon=epsilon, max_iter=10)
+
 x_test_adv = adv_crafter.generate(x=x_test)
 
 # Test the classifier on adversarial exmaples
+print(x_test_adv)
 predictions = mnist_classifier.predict(x_test_adv)
 accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
 print('Accuracy after attack: {}%'.format(accuracy * 100))
