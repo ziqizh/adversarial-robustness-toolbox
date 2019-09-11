@@ -1,9 +1,13 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 
+from collections import OrderedDict
 from art.attacks.fast_gradient import FastGradientMethod
+from art.attacks.deepfool import DeepFool
+from art.attacks.adversarial_patch import AdversarialPatch
 from art.classifiers.pytorch import PyTorchClassifier
 from art.utils import load_mnist
 
@@ -26,24 +30,77 @@ class Net(nn.Module):
         x = self.fc2(x)
         return x
 
+class SmallCNN(nn.Module):
+    def __init__(self, drop=0.5):
+        super(SmallCNN, self).__init__()
+
+        self.num_channels = 1
+        self.num_labels = 10
+
+        activ = nn.ReLU(True)
+
+        self.feature_extractor = nn.Sequential(OrderedDict([
+            ('conv1', nn.Conv2d(self.num_channels, 32, 3)),
+            ('relu1', activ),
+            ('conv2', nn.Conv2d(32, 32, 3)),
+            ('relu2', activ),
+            ('maxpool1', nn.MaxPool2d(2, 2)),
+            ('conv3', nn.Conv2d(32, 64, 3)),
+            ('relu3', activ),
+            ('conv4', nn.Conv2d(64, 64, 3)),
+            ('relu4', activ),
+            ('maxpool2', nn.MaxPool2d(2, 2)),
+        ]))
+
+        self.classifier = nn.Sequential(OrderedDict([
+            ('fc1', nn.Linear(64 * 4 * 4, 200)),
+            ('relu1', activ),
+            ('drop', nn.Dropout(drop)),
+            ('fc2', nn.Linear(200, 200)),
+            ('relu2', activ),
+            ('fc3', nn.Linear(200, self.num_labels)),
+        ]))
+
+        for m in self.modules():
+            if isinstance(m, (nn.Conv2d)):
+                nn.init.kaiming_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+        nn.init.constant_(self.classifier.fc3.weight, 0)
+        nn.init.constant_(self.classifier.fc3.bias, 0)
+
+    def forward(self, input):
+        features = self.feature_extractor(input)
+        logits = self.classifier(features.view(-1, 64 * 4 * 4))
+        return logits
+
+
 # Load the MNIST dataset
 (x_train, y_train), (x_test, y_test), min_, max_ = load_mnist()
 x_train = np.swapaxes(x_train, 1, 3)
 x_test = np.swapaxes(x_test, 1, 3)
 
 # Obtain the model object
-model = Net()
+device = torch.device("cuda")
+model = SmallCNN().to(device)
+# model = Net().to(device)
 
 # Define the loss function and the optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
 # Initialize the classifier
-mnist_classifier = PyTorchClassifier(clip_values=(0, 1), model=model, loss=criterion, optimizer=optimizer, 
+mnist_classifier = PyTorchClassifier(clip_values=(0, 1), model=model, loss=criterion, optimizer=optimizer,
                                      input_shape=(1, 28, 28), nb_classes=10)
 
 # Train the classifier
-mnist_classifier.fit(x_train, y_train, batch_size=64, nb_epochs=10)
+# mnist_classifier.fit(x_train, y_train, batch_size=64, nb_epochs=30)
+# torch.save(model.state_dict(), "./minst.pt")
+model.load_state_dict(torch.load("./minst.pt"))
+
 
 # Test the classifier
 predictions = mnist_classifier.predict(x_test)
@@ -52,7 +109,7 @@ print('Accuracy before attack: {}%'.format(accuracy * 100))
 
 # Craft the adversarial examples
 epsilon = 0.2  # Maximum perturbation
-adv_crafter = FastGradientMethod(mnist_classifier, eps=epsilon)
+adv_crafter = AdversarialPatch(mnist_classifier, batch_size=16, max_iter=50)
 x_test_adv = adv_crafter.generate(x=x_test)
 
 # Test the classifier on adversarial exmaples
