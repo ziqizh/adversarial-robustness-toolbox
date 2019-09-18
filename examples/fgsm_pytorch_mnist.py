@@ -1,7 +1,9 @@
 import torch
+import torchvision
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torchvision import datasets, transforms
 import numpy as np
 
 from collections import OrderedDict
@@ -10,6 +12,7 @@ from art.attacks.deepfool import DeepFool
 from art.attacks.adversarial_patch import AdversarialPatch
 from art.attacks.hop_skip_jump import HopSkipJump
 from art.attacks.carlini import CarliniL2Method
+from art.attacks.projected_gradient_descent import ProjectedGradientDescent
 from art.classifiers.pytorch import PyTorchClassifier
 from art.utils import load_mnist
 
@@ -79,6 +82,16 @@ class SmallCNN(nn.Module):
         logits = self.classifier(features.view(-1, 64 * 4 * 4))
         return logits
 
+# Setup the test loader
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda" if use_cuda else "cpu")
+kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+transform_test = transforms.Compose([transforms.ToTensor(),])
+testset = torchvision.datasets.MNIST(root='../data', train=False, download=True, transform=transform_test)
+test_loader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuffle=False, **kwargs)
+test_dataset_array = next(iter(test_loader))[0].numpy()
+test_label_dataset_array = next(iter(test_loader))[1].numpy()
+print(test_label_dataset_array)
 
 # Load the MNIST dataset
 (x_train, y_train), (x_test, y_test), min_, max_ = load_mnist()
@@ -86,7 +99,7 @@ x_train = np.swapaxes(x_train, 1, 3)
 x_test = np.swapaxes(x_test, 1, 3)
 
 # Obtain the model object
-device = torch.device("cuda")
+# device = torch.device("cuda")
 model = SmallCNN().to(device)
 # model = Net().to(device)
 
@@ -101,19 +114,22 @@ mnist_classifier = PyTorchClassifier(clip_values=(0, 1), model=model, loss=crite
 # Train the classifier
 # mnist_classifier.fit(x_train, y_train, batch_size=64, nb_epochs=50)
 # torch.save(model.state_dict(), "./minst.pt")
-model.load_state_dict(torch.load("./minst.pt"))
+model.load_state_dict(torch.load("../checkpoints/model-nn-epoch100.pt"))
 
 
 # Test the classifier
-predictions = mnist_classifier.predict(x_test)
-accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
+predictions = mnist_classifier.predict(test_dataset_array)
+# print(predictions)
+
+accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(y_test)
 print('Accuracy before attack: {}%'.format(accuracy * 100))
 
 # Craft the adversarial examples
 epsilon = 0.2  # Maximum perturbation
 # adv_crafter = AdversarialPatch(mnist_classifier, batch_size=16, max_iter=10)
 # adv_crafter = FastGradientMethod(mnist_classifier, eps=epsilon)
-adv_crafter = CarliniL2Method(mnist_classifier)
+# adv_crafter = CarliniL2Method(mnist_classifier)
+adv_crafter = ProjectedGradientDescent(mnist_classifier)
 # adv_crafter = DeepFool(mnist_classifier, epsilon=epsilon, max_iter=10)
 
 x_test_adv = adv_crafter.generate(x=x_test)
@@ -121,5 +137,5 @@ x_test_adv = adv_crafter.generate(x=x_test)
 # Test the classifier on adversarial exmaples
 print(x_test_adv)
 predictions = mnist_classifier.predict(x_test_adv)
-accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
+accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(y_test)
 print('Accuracy after attack: {}%'.format(accuracy * 100))
