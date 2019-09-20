@@ -109,4 +109,4 @@ demo/pics/*
 !notebooks/*.ipynb
 
 # Checkpoints
-checkpoints/*
+checkpoints/
