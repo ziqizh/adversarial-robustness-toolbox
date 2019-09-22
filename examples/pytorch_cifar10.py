@@ -86,10 +86,15 @@ predictions = cifar_classifier.predict(x_test_adv)
 accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
 print('Accuracy after FGSM attack: {}%'.format(accuracy * 100))
 
-# FullBox not supported
+# DeepFool
+adv_crafter_deepfool = CarliniLInfMethod(cifar_classifier, batch_size=batch_size)
+x_test_adv = adv_crafter_deepfool.generate(x=test_dataset_array)
+
+predictions = cifar_classifier.predict(x_test_adv)
+accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
+print('Accuracy after DeepFool attack: {}%'.format(accuracy * 100))
 
 # C&W
-
 adv_crafter_cwinf = CarliniLInfMethod(cifar_classifier, eps=epsilon, batch_size=batch_size)
 x_test_adv = adv_crafter_cwinf.generate(x=test_dataset_array)
 

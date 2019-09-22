@@ -33,6 +33,7 @@ test_label_dataset_array = next(iter(test_loader))[1].numpy()
 # Setup the parameters
 epsilon = 0.031  # Maximum perturbation
 batch_size = 64
+directory = ""
 
 # Obtain the model object
 model = WideResNet().to(device)
@@ -86,7 +87,13 @@ predictions = cifar_classifier.predict(x_test_adv)
 accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
 print('Accuracy after FGSM attack: {}%'.format(accuracy * 100))
 
-# FullBox not supported
+# Deepfool
+adv_crafter_deepfool = DeepFool(cifar_classifier, batch_size=batch_size)
+x_test_adv = adv_crafter_deepfool.generate(x=test_dataset_array)
+
+predictions = cifar_classifier.predict(x_test_adv)
+accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
+print('Accuracy after DeepFool attack: {}%'.format(accuracy * 100))
 
 # C&W
 
