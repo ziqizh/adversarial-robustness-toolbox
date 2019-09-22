@@ -54,45 +54,46 @@ test_label_dataset_array = next(iter(test_loader))[1].numpy()
 # total_epoch = 20;
 # directory_str = "../mnist.trades.atta-1.b6/"
 # directory = os.fsencode(directory_str)
-log_file = open(args.log_path, 'w')
+if __name__ == '__main__':
+    log_file = open(args.log_path, 'w')
 
-# Obtain the model object
-model = SmallCNN().to(device)
+    # Obtain the model object
+    model = SmallCNN().to(device)
 
-# Define the loss function and the optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+    # Define the loss function and the optimizer
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
-# Initialize the classifier
-mnist_classifier = PyTorchClassifier(clip_values=(0, 1), model=model, loss=criterion, optimizer=optimizer,
-                                     input_shape=(1, 28, 28), nb_classes=10)
+    # Initialize the classifier
+    mnist_classifier = PyTorchClassifier(clip_values=(0, 1), model=model, loss=criterion, optimizer=optimizer,
+                                         input_shape=(1, 28, 28), nb_classes=10)
 
-for epoch in range(args.total_epoch):
-    e = (epoch + 1) * 5
-    file = os.path.join(args.model_dir, "model-nn-epoch" + str(e) + ".pt")
-    print(os.path.join(args.model_dir, "model-nn-epoch" + str(e) + ".pt"))
-    # filename = os.fsdecode(file)
-    # Load the classifier
-    # print("Loading " + str(filename))
-    model.load_state_dict(torch.load(file))
+    for epoch in range(args.total_epoch):
+        e = (epoch + 1) * 5
+        file = os.path.join(args.model_dir, "model-nn-epoch" + str(e) + ".pt")
+        print(os.path.join(args.model_dir, "model-nn-epoch" + str(e) + ".pt"))
+        # filename = os.fsdecode(file)
+        # Load the classifier
+        # print("Loading " + str(filename))
+        model.load_state_dict(torch.load(file))
 
-    # Test the classifier
-    predictions = mnist_classifier.predict(test_dataset_array)
+        # Test the classifier
+        predictions = mnist_classifier.predict(test_dataset_array)
 
-    accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
-    print('Accuracy before attack: {}%'.format(accuracy * 100))
+        accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
+        print('Accuracy before attack: {}%'.format(accuracy * 100))
 
-    # Craft the adversarial examples
+        # Craft the adversarial examples
 
-    # PGD-20
-    adv_crafter_pgd_40 = ProjectedGradientDescent(mnist_classifier, eps=args.epsilon, max_iter=40, batch_size=args.batch_size)
+        # PGD-20
+        adv_crafter_pgd_40 = ProjectedGradientDescent(mnist_classifier, eps=args.epsilon, max_iter=40, batch_size=args.batch_size)
 
-    x_test_adv = adv_crafter_pgd_40.generate(x=test_dataset_array)
+        x_test_adv = adv_crafter_pgd_40.generate(x=test_dataset_array)
 
-    # Test the classifier on adversarial exmaples
-    predictions = mnist_classifier.predict(x_test_adv)
-    accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
-    print('Accuracy after PGD-20 attack: {}%'.format(accuracy * 100))
-    log_file.write("{} {}\n".format(e, accuracy))
+        # Test the classifier on adversarial exmaples
+        predictions = mnist_classifier.predict(x_test_adv)
+        accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
+        print('Accuracy after PGD-20 attack: {}%'.format(accuracy * 100))
+        log_file.write("{} {}\n".format(e, accuracy))
 
-log_file.close()
+    log_file.close()
