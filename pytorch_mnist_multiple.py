@@ -22,13 +22,13 @@ from art.classifiers.pytorch import PyTorchClassifier
 from art.utils import load_mnist
 
 parser = argparse.ArgumentParser(description='PYTORCH MNIST BENCHMARK')
-parser.add_argument('--log-path',  default='../data-log/measure/atta-m-loss-default.log',
+parser.add_argument('--log-path',  default='./data-log/measure/atta-m-loss-default.log',
                     help='Log path.')
 parser.add_argument('--start-epoch', type=int, default=5,
                     help='The epoch number you start from.')
 parser.add_argument('--total-epoch', type=int, default=20,
                     help='The number of epochs.')
-parser.add_argument('--model-dir', default='../mnist.trades.atta-1.b6/',
+parser.add_argument('--model-dir', default='./mnist.trades.atta-1.b6/',
                     help='The dir of the saved model')
 parser.add_argument('--epsilon', type=int, default=0.3,
                     help='checkpoint')
