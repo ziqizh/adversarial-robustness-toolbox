@@ -22,7 +22,7 @@ from art.classifiers.pytorch import PyTorchClassifier
 from art.utils import load_mnist
 
 parser = argparse.ArgumentParser(description='PYTORCH MNIST BENCHMARK')
-parser.add_argument('--log-path',  default='./data-log/measure/atta-m-loss-default.log',
+parser.add_argument('--log-path',  default='./data-log/measure/atta-trades-atta-1.log',
                     help='Log path.')
 parser.add_argument('--start-epoch', type=int, default=5,
                     help='The epoch number you start from.')
@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
         # Craft the adversarial examples
 
-        # PGD-20
+        # PGD-40
         adv_crafter_pgd_40 = ProjectedGradientDescent(mnist_classifier, eps=args.epsilon, max_iter=40, batch_size=args.batch_size)
 
         x_test_adv = adv_crafter_pgd_40.generate(x=test_dataset_array)
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         # Test the classifier on adversarial exmaples
         predictions = mnist_classifier.predict(x_test_adv)
         accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
-        print('Accuracy after PGD-20 attack: {}%'.format(accuracy * 100))
+        print('Accuracy after PGD-40 attack: {}%'.format(accuracy * 100))
         log_file.write("{} {}\n".format(e, accuracy))
 
     log_file.close()

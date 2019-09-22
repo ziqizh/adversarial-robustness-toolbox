@@ -4,28 +4,22 @@ import seaborn as sns
 
 plt.switch_backend('agg')
 
-log1 = open('data-log/mnist-robust-accuracy.log')
+log1 = open('data-log/measure/atta-m-loss-default.log')
+log2 = open('data-log/measure/atta-mnist-mat-atta-1.log')
 
-label1 = "PGD-k"
-label2 = "ATTA-m"
-label3 = "atta-10"
-label4 = "atta-50"
+label1 = "TRADES ATTA-1"
+label2 = "MAT ATTA-1"
 
 data1 = []
 data2 = []
-data3 = []
-data4 = []
-length = 100
+length = 20
 
 log_lines1 = log1.readlines()
 log_lines2 = log2.readlines()
-log_lines3 = log3.readlines()
-log_lines4 = log4.readlines()
+
 for i in range(length):
   data1.append([eval(j) for j in log_lines1[i].split(' ')])
   data2.append([eval(j) for j in log_lines2[i].split(' ')])
-  data3.append([eval(j) for j in log_lines3[i].split(' ')])
-  data4.append([eval(j) for j in log_lines4[i].split(' ')])
 
 print(len(data1))
 
@@ -33,8 +27,7 @@ x = np.array([i[0] for i in data1]) + 1
 
 adv_loss1 = np.array([i[1] for i in data1])
 adv_loss2 = np.array([i[1] for i in data2])
-adv_loss3 = np.array([i[1] for i in data3])
-adv_loss4 = np.array([i[1] for i in data4])
+
 
 current_palette = sns.color_palette()
 
@@ -49,4 +42,4 @@ plt.tick_params(labelsize=10)
 
 plt.legend(fontsize='x-large')
 
-plt.savefig('data-pic/iteration-loss.png')
+plt.savefig('data-pic/robust-accuracy-by-epoch.png')
