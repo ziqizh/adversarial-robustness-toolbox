@@ -1,3 +1,5 @@
+import argparse
+
 import torch
 import torchvision
 import os
@@ -19,6 +21,22 @@ from art.attacks.projected_gradient_descent import ProjectedGradientDescent
 from art.classifiers.pytorch import PyTorchClassifier
 from art.utils import load_mnist
 
+parser = argparse.ArgumentParser(description='PYTORCH MNIST BENCHMARK')
+parser.add_argument('--log-path',  default='../data-log/measure/atta-m-loss-default.log',
+                    help='Log path.')
+parser.add_argument('--start-epoch', type=int, default=5,
+                    help='The epoch number you start from.')
+parser.add_argument('--total-epoch', type=int, default=20,
+                    help='The number of epochs.')
+parser.add_argument('--model-dir', default='../mnist.trades.atta-1.b6/',
+                    help='The dir of the saved model')
+parser.add_argument('--epsilon', type=int, default=0.3,
+                    help='checkpoint')
+parser.add_argument('--batch-size', type=int, default=512,
+                    help='checkpoint')
+args = parser.parse_args()
+
+
 # Setup the test loader
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
@@ -29,14 +47,14 @@ test_loader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuf
 test_dataset_array = next(iter(test_loader))[0].numpy()
 test_label_dataset_array = next(iter(test_loader))[1].numpy()
 
-batch_size = 128
-log_path = "../data-log/mnist-robust-accuracy.log"
-epsilon = 0.3
-start_epoch = 5;
-total_epoch = 20;
-directory_str = "../mnist.trades.atta-1.b6/"
-directory = os.fsencode(directory_str)
-log_file = open(log_path, 'w')
+# batch_size = 512
+# log_path = "../data-log/mnist-trades-atta-1-accuracy.log"
+# epsilon = 0.3
+# start_epoch = 5;
+# total_epoch = 20;
+# directory_str = "../mnist.trades.atta-1.b6/"
+# directory = os.fsencode(directory_str)
+log_file = open(args.log_path, 'w')
 
 # Obtain the model object
 model = SmallCNN().to(device)
@@ -49,10 +67,10 @@ optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 mnist_classifier = PyTorchClassifier(clip_values=(0, 1), model=model, loss=criterion, optimizer=optimizer,
                                      input_shape=(1, 28, 28), nb_classes=10)
 
-for epoch in range(total_epoch):
+for epoch in range(args.total_epoch):
     e = (epoch + 1) * 5
-    file = os.path.join(directory_str, "model-nn-epoch" + str(e) + ".pt")
-    print(os.path.join(directory_str, "model-nn-epoch" + str(e) + ".pt"))
+    file = os.path.join(args.model_dir, "model-nn-epoch" + str(e) + ".pt")
+    print(os.path.join(args.model_dir, "model-nn-epoch" + str(e) + ".pt"))
     # filename = os.fsdecode(file)
     # Load the classifier
     # print("Loading " + str(filename))
@@ -67,7 +85,7 @@ for epoch in range(total_epoch):
     # Craft the adversarial examples
 
     # PGD-20
-    adv_crafter_pgd_40 = ProjectedGradientDescent(mnist_classifier, eps=epsilon, max_iter=40, batch_size=batch_size)
+    adv_crafter_pgd_40 = ProjectedGradientDescent(mnist_classifier, eps=args.epsilon, max_iter=40, batch_size=args.batch_size)
 
     x_test_adv = adv_crafter_pgd_40.generate(x=test_dataset_array)
 

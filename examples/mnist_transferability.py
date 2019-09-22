@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+d# -*- coding: utf-8 -*-
 """Trains a CNN on the MNIST dataset using the Keras backend, then generates adversarial images using DeepFool
 and uses them to attack a CNN trained on MNIST using TensorFlow. This is to show how to perform a
 black-box attack: the attack never has access to the parameters of the TensorFlow model.
