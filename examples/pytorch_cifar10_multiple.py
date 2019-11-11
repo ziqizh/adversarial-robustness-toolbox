@@ -17,6 +17,14 @@ from art.attacks.carlini import CarliniLInfMethod
 from art.attacks.projected_gradient_descent import ProjectedGradientDescent
 from art.classifiers.pytorch import PyTorchClassifier
 from art.utils import load_mnist
+import argparse
+
+parser = argparse.ArgumentParser(description='PYTORCH MNIST BENCHMARK')
+parser.add_argument('--log-path',  default='./data-log/measure/atta-trades-atta-1.log',
+                    help='Log path.')
+parser.add_argument('--model-dir', default='./mnist.trades.atta-1.b6/',
+                    help='The dir of the saved model')
+args = parser.parse_args()
 
 #Create the neural network architecture, return logits instead of activation in forward method (Eg. softmax)
 
@@ -35,71 +43,72 @@ epsilon = 0.031  # Maximum perturbation
 batch_size = 64
 directory = ""
 
-# Obtain the model object
-model = WideResNet().to(device)
+if __name__ == '__main__':
+    # Obtain the model object
+    model = WideResNet().to(device)
 
-# Define the loss function and the optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+    # Define the loss function and the optimizer
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
-# Initialize the classifier
-cifar_classifier = PyTorchClassifier(clip_values=(0, 1), model=model, loss=criterion, optimizer=optimizer,
-                                     input_shape=(1, 28, 28), nb_classes=10)
+    # Initialize the classifier
+    cifar_classifier = PyTorchClassifier(clip_values=(0, 1), model=model, loss=criterion, optimizer=optimizer,
+                                         input_shape=(1, 28, 28), nb_classes=10)
 
-# Load the model
-model.load_state_dict(torch.load("../checkpoints/model_cifar_wrn.pt"))
+    # Load the model
+    model.load_state_dict(torch.load("../checkpoints/model_cifar_wrn.pt"))
 
 
-# Test the natural accuracy
-predictions = cifar_classifier.predict(test_dataset_array)
+    # Test the natural accuracy
+    predictions = cifar_classifier.predict(test_dataset_array)
 
-accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
-print('Accuracy before attack: {}%'.format(accuracy * 100))
+    accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
+    print('Accuracy before attack: {}%'.format(accuracy * 100))
 
-# Craft the adversarial examples
+    # Craft the adversarial examples
 
-# PGD-20
-adv_crafter_pgd_20 = ProjectedGradientDescent(cifar_classifier, eps=epsilon, eps_step=0.01, max_iter=20, batch_size=batch_size)
+    # # PGD-20
+    # adv_crafter_pgd_20 = ProjectedGradientDescent(cifar_classifier, eps=epsilon, eps_step=0.01, max_iter=20, batch_size=batch_size)
+    #
+    # x_test_adv = adv_crafter_pgd_20.generate(x=test_dataset_array)
+    #
+    # # Test the classifier on adversarial exmaples
+    # predictions = cifar_classifier.predict(x_test_adv)
+    # accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
+    # print('Accuracy after PGD-20 attack: {}%'.format(accuracy * 100))
 
-x_test_adv = adv_crafter_pgd_20.generate(x=test_dataset_array)
+    # PGD-100
+    adv_crafter_pgd_100 = ProjectedGradientDescent(cifar_classifier, eps=epsilon, eps_step=0.01, max_iter=100, batch_size=batch_size)
 
-# Test the classifier on adversarial exmaples
-predictions = cifar_classifier.predict(x_test_adv)
-accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
-print('Accuracy after PGD-20 attack: {}%'.format(accuracy * 100))
+    x_test_adv = adv_crafter_pgd_100.generate(x=test_dataset_array)
 
-# PGD-100
-adv_crafter_pgd_100 = ProjectedGradientDescent(cifar_classifier, eps=epsilon, eps_step=0.01, max_iter=100, batch_size=batch_size)
+    # Test the classifier on adversarial exmaples
+    predictions = cifar_classifier.predict(x_test_adv)
+    accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
+    print('Accuracy after PGD-100 attack: {}%'.format(accuracy * 100))
 
-x_test_adv = adv_crafter_pgd_100.generate(x=test_dataset_array)
+    # FGSM
+    adv_crafter_fgsm = FastGradientMethod(cifar_classifier, eps=epsilon, eps_step=0.01, batch_size=batch_size)
+    x_test_adv = adv_crafter_fgsm.generate(x=test_dataset_array)
 
-# Test the classifier on adversarial exmaples
-predictions = cifar_classifier.predict(x_test_adv)
-accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
-print('Accuracy after PGD-100 attack: {}%'.format(accuracy * 100))
+    # Test the classifier on adversarial exmaples
+    predictions = cifar_classifier.predict(x_test_adv)
+    accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
+    print('Accuracy after FGSM attack: {}%'.format(accuracy * 100))
 
-# FGSM
-adv_crafter_fgsm = FastGradientMethod(cifar_classifier, eps=epsilon, eps_step=0.01, batch_size=batch_size)
-x_test_adv = adv_crafter_fgsm.generate(x=test_dataset_array)
+    # Deepfool
+    adv_crafter_deepfool = DeepFool(cifar_classifier, batch_size=batch_size)
+    x_test_adv = adv_crafter_deepfool.generate(x=test_dataset_array)
 
-# Test the classifier on adversarial exmaples
-predictions = cifar_classifier.predict(x_test_adv)
-accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
-print('Accuracy after FGSM attack: {}%'.format(accuracy * 100))
+    predictions = cifar_classifier.predict(x_test_adv)
+    accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
+    print('Accuracy after DeepFool attack: {}%'.format(accuracy * 100))
 
-# Deepfool
-adv_crafter_deepfool = DeepFool(cifar_classifier, batch_size=batch_size)
-x_test_adv = adv_crafter_deepfool.generate(x=test_dataset_array)
+    # C&W
 
-predictions = cifar_classifier.predict(x_test_adv)
-accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
-print('Accuracy after DeepFool attack: {}%'.format(accuracy * 100))
+    adv_crafter_cwinf = CarliniLInfMethod(cifar_classifier, eps=epsilon, batch_size=batch_size)
+    x_test_adv = adv_crafter_cwinf.generate(x=test_dataset_array)
 
-# C&W
-
-adv_crafter_cwinf = CarliniLInfMethod(cifar_classifier, eps=epsilon, batch_size=batch_size)
-x_test_adv = adv_crafter_cwinf.generate(x=test_dataset_array)
-
-predictions = cifar_classifier.predict(x_test_adv)
-accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
-print('Accuracy after C&W attack: {}%'.format(accuracy * 100))
+    predictions = cifar_classifier.predict(x_test_adv)
+    accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
+    print('Accuracy after C&W attack: {}%'.format(accuracy * 100))

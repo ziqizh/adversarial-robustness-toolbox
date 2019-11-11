@@ -83,7 +83,7 @@ class PyTorchClassifier(Classifier):
 
         # Use GPU if possible
         import torch
-        self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self._device = torch.device("cuda:3")
         self._model.to(self._device)
 
         # Index of layer at which the class gradients should be calculated
