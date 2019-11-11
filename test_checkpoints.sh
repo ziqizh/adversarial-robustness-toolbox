@@ -1,4 +1,3 @@
-!#/bin/bash
 
 export PYTHONPATH=${PWD}
 echo CIFAR MAT ATTA 1

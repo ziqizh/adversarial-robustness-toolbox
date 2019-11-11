@@ -23,7 +23,7 @@ import argparse
 parser = argparse.ArgumentParser(description='PYTORCH MNIST BENCHMARK')
 parser.add_argument('--ckpt-path', default='/home/hzzheng/Code/faster-advt/TRADES/data-model/mnist.atta-1.mat/model-nn-epoch60.pt',
                     help='aaa')
-parser.add_argument('-d', type=int, default=3,
+parser.add_argument('-d', type=int, default=0,
                     help='Device number')
 args = parser.parse_args()
 # Setup the test loader
