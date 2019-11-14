@@ -2,27 +2,12 @@
 """Trains a convolutional neural network on the MNIST dataset, then attacks it with the FGSM attack."""
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import sys
-from os.path import abspath
 
-sys.path.append(abspath('.'))
-
-import os
-import argparse
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision
-from torch.autograd import Variable
-import torch.optim as optim
-from torchvision import datasets, transforms
-import tensorflow as tf
-import keras.backend as k
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, Conv2D, MaxPooling2D, Dropout
 import numpy as np
 
-from art.attacks.fast_gradient import FastGradientMethod
+from art.attacks import FastGradientMethod
 from art.classifiers import KerasClassifier
 from art.utils import load_dataset
 from models.small_cnn import SmallCNN
@@ -33,14 +18,17 @@ from models.small_cnn import SmallCNN
 
 # Create Keras convolutional neural network - basic architecture from Keras examples
 # Source here: https://github.com/keras-team/keras/blob/master/examples/mnist_cnn.py
-k.set_learning_phase(1)
-device = torch.device("cuda")
-model = SmallCNN().to(device)
-# model.load_state_dict(torch.load('./checkpoints/model_mnist_smallcnn.pt'))
+model = Sequential()
+model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=x_train.shape[1:]))
+model.add(Conv2D(64, (3, 3), activation='relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+model.add(Flatten())
+model.add(Dense(128, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(10, activation='softmax'))
 
-# checkpoint_path = "training_1/cp.ckpt"
-# checkpoint_dir = os.path.dirname(checkpoint_path)
-# cp_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path, save_weights_only=True, verbose=1)
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 classifier = KerasClassifier(model=model, clip_values=(min_, max_))
 classifier.fit(x_train, y_train, nb_epochs=5, batch_size=128)

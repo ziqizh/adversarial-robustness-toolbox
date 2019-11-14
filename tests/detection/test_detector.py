@@ -20,15 +20,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import unittest
 
+import tensorflow as tf
 import keras
 import keras.backend as k
 from keras.layers import Dense, Flatten, Conv2D, MaxPooling2D
 from keras.models import Sequential
 import numpy as np
 
-from art.attacks.fast_gradient import FastGradientMethod
-from art.classifiers.keras import KerasClassifier
-from art.detection.detector import BinaryInputDetector, BinaryActivationDetector
+from art.attacks import FastGradientMethod
+from art.classifiers import KerasClassifier
+from art.detection import BinaryInputDetector, BinaryActivationDetector
 from art.utils import load_mnist, master_seed
 from art.utils_test import get_classifier_kr
 
@@ -37,6 +38,8 @@ logger = logging.getLogger('testLogger')
 BATCH_SIZE, NB_TRAIN, NB_TEST = 100, 1000, 10
 
 
+@unittest.skipIf(tf.__version__[0] == '2', reason='Skip unittests for TensorFlow v2 until Keras supports TensorFlow'
+                                                  ' v2 as backend.')
 class TestBinaryInputDetector(unittest.TestCase):
     """
     A unittest class for testing the binary input detector.
@@ -61,7 +64,7 @@ class TestBinaryInputDetector(unittest.TestCase):
         x_test, y_test = x_test[:NB_TEST], y_test[:NB_TEST]
 
         # Keras classifier
-        classifier, _ = get_classifier_kr()
+        classifier = get_classifier_kr()
 
         # Generate adversarial samples:
         attacker = FastGradientMethod(classifier, eps=0.1)
@@ -99,6 +102,8 @@ class TestBinaryInputDetector(unittest.TestCase):
         self.assertGreater(nb_true_negatives, 0)
 
 
+@unittest.skipIf(tf.__version__[0] == '2', reason='Skip unittests for TensorFlow v2 until Keras supports TensorFlow'
+                                                  ' v2 as backend.')
 class TestBinaryActivationDetector(unittest.TestCase):
     """
     A unittest class for testing the binary activation detector.
@@ -122,7 +127,7 @@ class TestBinaryActivationDetector(unittest.TestCase):
         x_test, y_test = x_test[:NB_TEST], y_test[:NB_TEST]
 
         # Keras classifier
-        classifier, _ = get_classifier_kr()
+        classifier = get_classifier_kr()
 
         # Generate adversarial samples:
         attacker = FastGradientMethod(classifier, eps=0.1)
@@ -134,7 +139,7 @@ class TestBinaryActivationDetector(unittest.TestCase):
         y_train_detector = np.concatenate((np.array([[1, 0]] * NB_TRAIN), np.array([[0, 1]] * NB_TRAIN)), axis=0)
 
         # Create a simple CNN for the detector
-        activation_shape = classifier.get_activations(x_test[:1], 0).shape[1:]
+        activation_shape = classifier.get_activations(x_test[:1], 0, batch_size=128).shape[1:]
         number_outputs = 2
         model = Sequential()
         model.add(MaxPooling2D(pool_size=(2, 2), input_shape=activation_shape))

@@ -78,14 +78,14 @@ if __name__ == '__main__':
     # print('Accuracy after PGD-20 attack: {}%'.format(accuracy * 100))
 
     # PGD-100
-    adv_crafter_pgd_100 = ProjectedGradientDescent(cifar_classifier, eps=epsilon, eps_step=0.01, max_iter=100, batch_size=batch_size)
+    # adv_crafter_pgd_100 = ProjectedGradientDescent(cifar_classifier, eps=epsilon, eps_step=0.01, max_iter=100, batch_size=batch_size)
 
-    x_test_adv = adv_crafter_pgd_100.generate(x=test_dataset_array)
+    # x_test_adv = adv_crafter_pgd_100.generate(x=test_dataset_array)
 
-    # Test the classifier on adversarial exmaples
-    predictions = cifar_classifier.predict(x_test_adv)
-    accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
-    print('Accuracy after PGD-100 attack: {}%'.format(accuracy * 100))
+    # # Test the classifier on adversarial exmaples
+    # predictions = cifar_classifier.predict(x_test_adv)
+    # accuracy = np.sum(np.argmax(predictions, axis=1) == test_label_dataset_array) / len(test_label_dataset_array)
+    # print('Accuracy after PGD-100 attack: {}%'.format(accuracy * 100))
 
     # FGSM
     adv_crafter_fgsm = FastGradientMethod(cifar_classifier, eps=epsilon, eps_step=0.01, batch_size=batch_size)
